@@ -155,6 +155,67 @@
       #tools-grid { grid-template-columns: 1fr; }
       .page-header h1 { font-size: 1.4rem; }
     }
+
+
+    /* ── HAMBURGER + MOBILE OVERLAY ── */
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      margin-left: auto;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+    }
+    .mobile-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 300;
+    }
+    .mobile-overlay.open { display: block; }
+    .mobile-drawer {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 80%;
+      max-width: 300px;
+      background: var(--white);
+      overflow-y: auto;
+      padding: 1rem 0 2rem;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+    }
+    .mobile-overlay.open .mobile-drawer { transform: translateX(0); }
+    .mobile-drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem 1rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0.5rem;
+    }
+    .mobile-close {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      line-height: 1;
+      padding: 0;
+    }
+    .mobile-close:hover { color: var(--text); }
+    @media (max-width: 720px) {
+      .hamburger { display: flex; }
+    }
   </style>
 </head>
 <body>
@@ -163,7 +224,21 @@
     <a href="/" class="logo-box">
       <img src="logo.png" alt="Free AI Tools" style="height:52px;width:auto;display:block;" />
     </a>
+    <button class="hamburger" id="hamburger-btn" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
   </header>
+
+  <!-- MOBILE OVERLAY -->
+  <div class="mobile-overlay" id="mobile-overlay">
+    <div class="mobile-drawer" id="mobile-drawer">
+      <div class="mobile-drawer-header">
+        <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-dim)">All Tools</span>
+        <button class="mobile-close" id="mobile-close-btn">✕</button>
+      </div>
+      <a class="sidebar-link active" data-tag="__all__" data-mobile href="#">All tools</a>
+    </div>
+  </div>
 
   <div class="layout">
     <nav class="sidebar" id="sidebar">
@@ -291,6 +366,7 @@
       document.querySelectorAll('.sidebar-link[data-tag]').forEach(el => {
         el.classList.toggle('active', el.dataset.tag === (activeTag || '__all__'));
       });
+      syncMobileDrawer();
       render();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -321,7 +397,51 @@
     });
     document.getElementById('clear-btn').addEventListener('click', () => setTag('__all__'));
 
+
+
+
+    // ── HAMBURGER MENU ──
+    const overlay = document.getElementById('mobile-overlay');
+    const drawer  = document.getElementById('mobile-drawer');
+
+    document.getElementById('hamburger-btn').addEventListener('click', () => {
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+
+    function closeDrawer() {
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    document.getElementById('mobile-close-btn').addEventListener('click', closeDrawer);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeDrawer(); });
+
+    function buildMobileDrawer() {
+      const allTags = [...new Set(TOOLS.flatMap(t => t.tags))].sort();
+      drawer.querySelector('[data-tag="__all__"]').addEventListener('click', e => {
+        e.preventDefault(); setTag('__all__'); closeDrawer();
+      });
+      allTags.forEach(tag => {
+        const a = document.createElement('a');
+        a.className = 'sidebar-link';
+        a.dataset.tag = tag;
+        a.dataset.mobile = '';
+        a.href = '#';
+        a.textContent = tag;
+        a.addEventListener('click', e => { e.preventDefault(); setTag(tag); closeDrawer(); });
+        drawer.appendChild(a);
+      });
+    }
+
+    function syncMobileDrawer() {
+      drawer.querySelectorAll('[data-mobile]').forEach(el => {
+        el.classList.toggle('active', el.dataset.tag === (activeTag || '__all__'));
+      });
+    }
+
     buildSidebar();
+    buildMobileDrawer();
     render();
   </script>
 </body>
